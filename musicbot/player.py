@@ -93,7 +93,13 @@ class MusicPlayerState(Enum):
 
     def __str__(self):
         return self.name
-
+class MusicPlayerRepeatState(Enum):
+     NONE = 0    # Playlist plays as normal
+     ALL = 1     # Entire playlist repeats
+     SINGLE = 2  # Currently playing song repeats
+ 
+     def __str__(self):
+         return self.name
 
 class MusicPlayer(EventEmitter, Serializable):
     def __init__(self, bot, voice_client, playlist):
@@ -104,7 +110,7 @@ class MusicPlayer(EventEmitter, Serializable):
         self.playlist = playlist
         self.state = MusicPlayerState.STOPPED
         self.skip_state = None
-
+        self.repeatState = MusicPlayerRepeatState.NONE
         self._volume = bot.config.default_volume
         self._play_lock = asyncio.Lock()
         self._current_player = None
@@ -152,7 +158,16 @@ class MusicPlayer(EventEmitter, Serializable):
             return
 
         raise ValueError('Cannot resume playback from state %s' % self.state)
-
+    def repeat(self):
+         if self.is_repeatNone:
+            self.repeatState = MusicPlayerRepeatState.ALL
+             return
+        if self.is_repeatAll:
+             self.repeatState = MusicPlayerRepeatState.SINGLE
+            return
+         if self.is_repeatSingle:
+            self.repeatState = MusicPlayerRepeatState.NONE
+             return
     def pause(self):
         if self.is_playing:
             self.state = MusicPlayerState.PAUSED
@@ -176,7 +191,8 @@ class MusicPlayer(EventEmitter, Serializable):
 
     def _playback_finished(self):
         entry = self._current_entry
-
+    if self.is_repeatAll:
+             self.playlist._add_entry(entry)
         if self._current_player:
             self._current_player.after = None
             self._kill_current_player()
@@ -392,6 +408,18 @@ class MusicPlayer(EventEmitter, Serializable):
         return self.state == MusicPlayerState.DEAD
 
     @property
+    def is_repeatNone(self):
+         return self.repeatState == MusicPlayerRepeatState.NONE
+ 
+    @property
+     def is_repeatAll(self):
+         return self.repeatState == MusicPlayerRepeatState.ALL
+ 
+     @property
+     def is_repeatSingle(self):
+         return self.repeatState == MusicPlayerRepeatState.SINGLE
+ 
+     @property
     def progress(self):
         if self._current_player:
             return round(self._current_player.buff.frame_count * 0.02)

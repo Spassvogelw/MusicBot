@@ -2593,9 +2593,8 @@ class MusicBot(discord.Client):
          Cycles through the repeat options. Default is no repeat, switchable to repeat all or repeat current song.
          """
  
-            if player.is_stopped:
-             raise exceptions.CommandError("Can't change repeat mode! The player is not playing!", expire_in=20)
- 
+
+
          player.repeat()
  
          if player.is_repeatNone:
